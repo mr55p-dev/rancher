@@ -70,23 +70,31 @@ func getBranchOptions(branchPrefix string) []huh.Option[string] {
 	return opts
 }
 
-func main() {
+func getCurrentBranch() (string, error) {
 	branchCmd := exec.Command("git", "branch", "--show-current")
 	branchReader := new(strings.Builder)
 	branchCmd.Stdout = branchReader
 	err := branchCmd.Run()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		os.Exit(1)
+		return "", fmt.Errorf( "Error running git: %w", err)
 	}
+	return branchReader.String(), nil
+}
+
+func main() {
+	branchName := getCurrentBranch()
 	branchInfo := NewBranchParams(branchReader.String())
 	branchOpts := getBranchOptions(branchInfo.TypeRaw)
+	branchTicket := getTicketOptions(branchInfo.TicketRaw)
+
 
 	form := huh.NewForm(
 		huh.NewGroup(
 			huh.NewSelect[string]().
 				Title("Branch Type").
-				Options(branchOpts...),
+				Options(branchOpts...).
+				Value(&branchType),
+			huh.New
 		),
 	)
 	err = form.Run()
