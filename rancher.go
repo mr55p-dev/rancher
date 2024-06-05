@@ -110,9 +110,6 @@ func main() {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
-	fmt.Println("Done!")
-	fmt.Println("Branch type:", branchType)
-	fmt.Println("Ticket No:", ticketNo)
 	branchOut := new(strings.Builder)
 	desc = strings.TrimSpace(desc)
 	desc = strings.ReplaceAll(desc, " ", descSep)
