@@ -1,0 +1,5 @@
+ticket:
+  prefix: GO-
+branch-options:
+  # - key: hello
+  #   value: world

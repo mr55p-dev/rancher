@@ -4,28 +4,77 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 
 	"github.com/charmbracelet/huh"
+	"github.com/mr55p-dev/gonk"
 )
 
-var (
-	ticketPrefix string = "GO"
-	ticketSep    string = "-"
-	ticketNo     string = fmt.Sprintf("%s%s", ticketPrefix, ticketSep)
+type Ticket struct {
+	Prefix string `config:"prefix,optional"`
+	ID     string
+}
 
-	branchSep  string = "/"
-	branchType string = "feat"
+func (t *Ticket) String() string {
+	builder := new(strings.Builder)
+	builder.WriteString(t.Prefix)
+	builder.WriteString(t.ID)
+	return builder.String()
+}
 
-	desc    string
-	descSep string = "-"
-)
+type Request struct {
+	Separator            string `config:"separator,optional"`
+	Type                 string `config:"type,optional"`
+	Description          string
+	DescriptionSeparator string `config:"description-separator,optional"`
+}
 
-type BranchParams struct {
-	BranchRaw string
-	TicketRaw string
-	TypeRaw   string
-	DescRaw   string
+type BranchOption struct {
+	Key   string `config:"key"`
+	Value string `config:"value"`
+}
+
+type Config struct {
+	Ticket        Ticket         `config:"ticket,optional"`
+	Request       Request        `config:"request,optional"`
+	BranchOptions []BranchOption `config:"branch-options,optional"`
+}
+
+func (c *Config) String() string {
+	builder := new(strings.Builder)
+	if c.Request.Type != "" {
+		builder.WriteString(c.Request.Type)
+		builder.WriteString(c.Request.Separator)
+	}
+	builder.WriteString(c.Ticket.String())
+	if c.Request.Description != "" {
+		builder.WriteString(c.Request.Separator)
+		builder.WriteString(c.Request.Description)
+	}
+	return builder.String()
+}
+
+func NewConfig() *Config {
+	return &Config{
+		Ticket: Ticket{
+			Prefix: "GO",
+		},
+		Request: Request{
+			Separator:            "/",
+			Type:                 "feat",
+			DescriptionSeparator: "-",
+		},
+		BranchOptions: []BranchOption{
+			{"Feature", "feat"},
+			{"Fix", "fix"},
+			{"Documentation", "docs"},
+			{"Refactor", "refactor"},
+			{"Performance", "perf"},
+			{"CI", "ci"},
+			{"None", ""},
+		},
+	}
 }
 
 func runGit(args ...string) {
@@ -40,36 +89,12 @@ func runGit(args ...string) {
 	return
 }
 
-func NewBranchParams(branch string) *BranchParams {
-	out := &BranchParams{
-		BranchRaw: branch,
-	}
-
-	portions := strings.Split(branch, "/")
-	switch len(portions) {
-	case 3:
-		out.DescRaw = portions[2]
-		fallthrough
-	case 2:
-		out.TicketRaw = portions[1]
-		fallthrough
-	case 1:
-		out.TypeRaw = portions[0]
+func getBranchOptions(options []BranchOption) []huh.Option[string] {
+	out := make([]huh.Option[string], 0, len(options))
+	for _, option := range options {
+		out = append(out, huh.NewOption(option.Key, option.Value))
 	}
 	return out
-
-}
-
-func getBranchOptions() []huh.Option[string] {
-	return []huh.Option[string]{
-		huh.NewOption("Feature", "feat"),
-		huh.NewOption("Fix", "fix"),
-		huh.NewOption("Documentation", "docs"),
-		huh.NewOption("Refactor", "refactor"),
-		huh.NewOption("Performance", "perf"),
-		huh.NewOption("CI", "ci"),
-		huh.NewOption("None", ""),
-	}
 }
 
 func getTicketOptions() []huh.Option[string] {
@@ -77,63 +102,65 @@ func getTicketOptions() []huh.Option[string] {
 }
 
 func main() {
-	branchOpts := getBranchOptions()
-	branchTicket := getTicketOptions()
-	var ticketInput huh.Field
-	if len(branchTicket) > 0 {
-		ticketInput = huh.NewSelect[string]().
-			Title("Ticket").
-			Options(branchTicket...).
-			Value(&ticketNo)
-	} else {
-		ticketInput = huh.NewInput().
-			Title("Ticket No").
-			Prompt("? ").
-			Value(&ticketNo)
+	config := NewConfig()
+	yamlLoader, _ := gonk.NewYamlLoader("rancher.yml")
+	err := gonk.LoadConfig(config, yamlLoader)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(1)
 	}
+
+	branchOpts := getBranchOptions(config.BranchOptions)
+	branchType := config.Request.Type
+	branchDesc := config.Request.Description
+
+	ticketInput := huh.NewInput().
+		Key("ticketNumber").
+		Title("Ticket No").
+		Prompt("? ").
+		Validate(func(s string) error {
+			if _, err := strconv.Atoi(s); err != nil {
+				return err
+			}
+			return nil
+		})
 
 	form := huh.NewForm(
 		huh.NewGroup(
 			huh.NewSelect[string]().
+				Key("branchType").
 				Title("Branch Type").
 				Options(branchOpts...).
 				Value(&branchType),
 			ticketInput,
 			huh.NewInput().
+				Key("branchDesc").
 				Title("Description").
 				Prompt("? ").
-				Value(&desc),
+				Value(&branchDesc),
 		),
 	)
-	err := form.Run()
+	err = form.Run()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
-	branchOut := new(strings.Builder)
-	desc = strings.TrimSpace(desc)
-	desc = strings.ReplaceAll(desc, " ", descSep)
+	config.Ticket.ID = form.GetString("ticketNumber")
+	config.Request.Type = form.GetString("branchType")
+	config.Request.Description = form.GetString("branchDesc")
 
-	components := []string{branchType, ticketNo, desc}
-	for idx, component := range components {
-		if idx > 0 && component != "" {
-			branchOut.WriteString(branchSep)
-		}
-		if component != "" {
-			branchOut.WriteString(component)
-		}
-	}
+	branchOut := config.String()
 	var create bool = true
 	huh.NewConfirm().
 		Affirmative("Create").
 		Negative("Cancel").
 		Title("Create branch?").
-		Description(branchOut.String()).
+		Description(branchOut).
 		Value(&create).
 		Run()
 
 	if create {
-		runGit("branch", branchOut.String())
-		runGit("switch", branchOut.String())
+		runGit("branch", branchOut)
+		runGit("switch", branchOut)
 	}
 }
