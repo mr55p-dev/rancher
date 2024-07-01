@@ -18,6 +18,9 @@ type Ticket struct {
 }
 
 func (t *Ticket) String() string {
+	if t.ID == "" {
+		return ""
+	}
 	builder := new(strings.Builder)
 	builder.WriteString(t.Prefix)
 	builder.WriteString(t.ID)
@@ -64,10 +67,12 @@ func (c *Config) String() string {
 		builder.WriteString(c.Request.Type)
 		builder.WriteString(c.Request.Separator)
 	}
-	builder.WriteString(c.Ticket.String())
+	if ticket := c.Ticket.String(); ticket != "" {
+		builder.WriteString(ticket)
+		builder.WriteString(c.Request.Separator)
+	}
 	if c.Request.Description != "" {
 		replacer := strings.NewReplacer((" "), c.Request.DescriptionSeparator)
-		builder.WriteString(c.Request.Separator)
 		builder.WriteString(replacer.Replace(c.Request.Description))
 	}
 	return builder.String()
