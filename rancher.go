@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -12,6 +13,8 @@ import (
 	"github.com/mr55p-dev/gonk"
 )
 
+var useJira = flag.Bool("jira", false, "Use Jira for ticket numbers")
+
 type Ticket struct {
 	Prefix string `config:"prefix,optional"`
 	ID     string
@@ -22,7 +25,9 @@ func (t *Ticket) String() string {
 		return ""
 	}
 	builder := new(strings.Builder)
-	builder.WriteString(t.Prefix)
+	if !strings.HasPrefix(t.ID, t.Prefix) {
+		builder.WriteString(t.Prefix)
+	}
 	builder.WriteString(t.ID)
 	return builder.String()
 }
@@ -34,24 +39,19 @@ type Request struct {
 	DescriptionSeparator string `config:"description-separator,optional"`
 }
 
-type BranchOption struct {
+type SelectOption struct {
 	Key   string `config:"key"`
 	Value string `config:"value"`
-}
-
-type Jira struct {
-	Username string `config:"username"`
-	Token    string `config:"api-token"`
 }
 
 type Config struct {
 	Ticket        Ticket         `config:"ticket,optional"`
 	Request       Request        `config:"request,optional"`
-	BranchOptions []BranchOption `config:"branch-options,optional"`
-	Jira          Jira           `config:"jira"`
+	BranchOptions []SelectOption `config:"branch-options,optional"`
+	Jira          Jira           `config:"jira,optional"`
 }
 
-var DefaultBranchOptions = []BranchOption{
+var DefaultBranchOptions = []SelectOption{
 	{"Feature", "feat"},
 	{"Fix", "fix"},
 	{"Documentation", "docs"},
@@ -59,6 +59,14 @@ var DefaultBranchOptions = []BranchOption{
 	{"Performance", "perf"},
 	{"CI", "ci"},
 	{"None", ""},
+}
+
+func ToHuh(options []SelectOption) []huh.Option[string] {
+	out := make([]huh.Option[string], len(options))
+	for i, elem := range options {
+		out[i] = huh.NewOption(elem.Key, elem.Value)
+	}
+	return out
 }
 
 func (c *Config) String() string {
@@ -104,7 +112,7 @@ func runGit(args ...string) {
 	return
 }
 
-func getBranchOptions(options []BranchOption) []huh.Option[string] {
+func getBranchOptions(options []SelectOption) []huh.Option[string] {
 	out := make([]huh.Option[string], 0, len(options))
 	for _, option := range options {
 		out = append(out, huh.NewOption(option.Key, option.Value))
@@ -121,7 +129,6 @@ func loadConfig() (*Config, error) {
 	baseConfigDir, _ := os.UserHomeDir()
 	configPath := filepath.Join(baseConfigDir, ".config", "rancher", "rancher.yml")
 	yamlLoader, _ := gonk.NewYamlLoader(configPath)
-	fmt.Printf("yamlLoader: %v\n", yamlLoader)
 	err := gonk.LoadConfig(config, yamlLoader)
 	if err != nil {
 		log.Printf("hit an error: %+v, error: %v", *config, err)
@@ -132,19 +139,36 @@ func loadConfig() (*Config, error) {
 }
 
 func main() {
+	flag.Parse()
+
 	config, err := loadConfig()
 	if err != nil {
 		log.Panicf("Error loading configuration: %v", err)
-		os.Exit(1)
 	}
 	branchOpts := getBranchOptions(config.BranchOptions)
 	branchType := config.Request.Type
 	branchDesc := config.Request.Description
 
-	ticketInput := huh.NewInput().
-		Key("ticketNumber").
-		Title("Ticket No").
-		Prompt("? ")
+	var ticketInput huh.Field
+	if *useJira == true {
+		tickets, err := config.Jira.QueryTickets()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(1)
+		}
+
+		ticketOptions := ToHuh(tickets)
+		ticketInput = huh.NewSelect[string]().
+			Key("ticketNumber").
+			Title("Ticket").
+			Options(ticketOptions...).
+			Value(&branchType)
+	} else {
+		ticketInput = huh.NewInput().
+			Key("ticketNumber").
+			Title("Ticket No").
+			Prompt("? ")
+	}
 
 	form := huh.NewForm(
 		huh.NewGroup(
