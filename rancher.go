@@ -41,6 +41,16 @@ type Config struct {
 	BranchOptions []BranchOption `config:"branch-options,optional"`
 }
 
+var DefaultBranchOptions = []BranchOption{
+	{"Feature", "feat"},
+	{"Fix", "fix"},
+	{"Documentation", "docs"},
+	{"Refactor", "refactor"},
+	{"Performance", "perf"},
+	{"CI", "ci"},
+	{"None", ""},
+}
+
 func (c *Config) String() string {
 	builder := new(strings.Builder)
 	if c.Request.Type != "" {
@@ -65,16 +75,11 @@ func NewConfig() *Config {
 			Type:                 "feat",
 			DescriptionSeparator: "-",
 		},
-		BranchOptions: []BranchOption{
-			{"Feature", "feat"},
-			{"Fix", "fix"},
-			{"Documentation", "docs"},
-			{"Refactor", "refactor"},
-			{"Performance", "perf"},
-			{"CI", "ci"},
-			{"None", ""},
-		},
 	}
+}
+
+func (c *Config) ApplyBranchDefaults() {
+	c.BranchOptions = append(c.BranchOptions, DefaultBranchOptions...)
 }
 
 func runGit(args ...string) {
@@ -109,6 +114,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
+	config.ApplyBranchDefaults()
 
 	branchOpts := getBranchOptions(config.BranchOptions)
 	branchType := config.Request.Type
