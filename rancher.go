@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
-	"strconv"
+	"path/filepath"
 	"strings"
 
 	"github.com/charmbracelet/huh"
@@ -35,10 +36,16 @@ type BranchOption struct {
 	Value string `config:"value"`
 }
 
+type Jira struct {
+	Username string `config:"username"`
+	Token    string `config:"api-token"`
+}
+
 type Config struct {
 	Ticket        Ticket         `config:"ticket,optional"`
 	Request       Request        `config:"request,optional"`
 	BranchOptions []BranchOption `config:"branch-options,optional"`
+	Jira          Jira           `config:"jira"`
 }
 
 var DefaultBranchOptions = []BranchOption{
@@ -59,17 +66,15 @@ func (c *Config) String() string {
 	}
 	builder.WriteString(c.Ticket.String())
 	if c.Request.Description != "" {
+		replacer := strings.NewReplacer((" "), c.Request.DescriptionSeparator)
 		builder.WriteString(c.Request.Separator)
-		builder.WriteString(c.Request.Description)
+		builder.WriteString(replacer.Replace(c.Request.Description))
 	}
 	return builder.String()
 }
 
 func NewConfig() *Config {
 	return &Config{
-		Ticket: Ticket{
-			Prefix: "GO",
-		},
 		Request: Request{
 			Separator:            "/",
 			Type:                 "feat",
@@ -106,16 +111,27 @@ func getTicketOptions() []huh.Option[string] {
 	return []huh.Option[string]{}
 }
 
-func main() {
+func loadConfig() (*Config, error) {
 	config := NewConfig()
-	yamlLoader, _ := gonk.NewYamlLoader("rancher.yml")
+	baseConfigDir, _ := os.UserHomeDir()
+	configPath := filepath.Join(baseConfigDir, ".config", "rancher", "rancher.yml")
+	yamlLoader, _ := gonk.NewYamlLoader(configPath)
+	fmt.Printf("yamlLoader: %v\n", yamlLoader)
 	err := gonk.LoadConfig(config, yamlLoader)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		os.Exit(1)
+		log.Printf("hit an error: %+v, error: %v", *config, err)
+		return nil, err
 	}
 	config.ApplyBranchDefaults()
+	return config, nil
+}
 
+func main() {
+	config, err := loadConfig()
+	if err != nil {
+		log.Panicf("Error loading configuration: %v", err)
+		os.Exit(1)
+	}
 	branchOpts := getBranchOptions(config.BranchOptions)
 	branchType := config.Request.Type
 	branchDesc := config.Request.Description
@@ -123,13 +139,7 @@ func main() {
 	ticketInput := huh.NewInput().
 		Key("ticketNumber").
 		Title("Ticket No").
-		Prompt("? ").
-		Validate(func(s string) error {
-			if _, err := strconv.Atoi(s); err != nil {
-				return err
-			}
-			return nil
-		})
+		Prompt("? ")
 
 	form := huh.NewForm(
 		huh.NewGroup(
