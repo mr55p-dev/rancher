@@ -73,5 +73,4 @@ func (jira *Jira) QueryTickets() ([]SelectOption, error) {
 		arr[i] = SelectOption{fmt.Sprintf("%s: %s", issue.Key, issue.Summary), issue.Key}
 	}
 	return arr, nil
-
 }
