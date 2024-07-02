@@ -4,20 +4,21 @@ Require git
 Require rancher
 
 Set Shell "bash"
-Set FontSize 32
+Set FontSize 24
 Set Width 1200
-Set Height 600
+Set Height 800
 
-Type "rancher" Sleep 500ms  Enter
+Type "rancher" Sleep 1s
+Enter Sleep 3s
 
-Sleep 1s
+Down Sleep 1s
+Enter Sleep 3s
 
-Down Enter Sleep 500ms
+Type "ABC-1234" Sleep 1s 
+Enter Sleep 3s
 
-Type "ABC-1234" Sleep 500ms Enter Sleep 500ms
+Type "A fun description" Sleep 1s
+Enter Sleep 3s
 
-Type "A fun description" Sleep 500ms Enter Slep 500ms
-
-Right Sleep 500ms Enter
-
-Sleep 1s
+Left Sleep 1s
+Enter Sleep 3s
