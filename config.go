@@ -36,20 +36,18 @@ var DefaultBranchOptions = []SelectOption{
 }
 
 func (c *Config) String() string {
-	builder := new(strings.Builder)
+	segments := make([]string, 0)
 	if c.Branch.Type != "" {
-		builder.WriteString(c.Branch.Type)
-		builder.WriteString(c.Branch.Separator)
+		segments = append(segments, c.Branch.Type)
 	}
 	if c.Ticket.ID != "" {
-		builder.WriteString(c.Ticket.ID)
-		builder.WriteString(c.Branch.Separator)
+		segments = append(segments, c.Ticket.ID)
 	}
 	if c.Branch.Description != "" {
 		replacer := strings.NewReplacer((" "), c.Branch.DescriptionSeparator)
-		builder.WriteString(replacer.Replace(c.Branch.Description))
+		segments = append(segments, replacer.Replace(c.Branch.Description))
 	}
-	return builder.String()
+	return strings.Join(segments, c.Branch.Separator)
 }
 
 func NewConfig() *Config {
