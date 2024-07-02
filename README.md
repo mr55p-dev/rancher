@@ -9,6 +9,20 @@ and get a git branch at the end of it. Branches are created with the format `{fe
 
 ![Rancher demo](demo.gif)
 
+Rancher also supports a basic jira integration. Create an API token
+[here](https://id.atlassian.com/manage-profile/security/api-tokens) and save it to the rancher
+configuration file at `$HOME/.config/rancher/rancher.yml`.
+
+```!yaml
+jira:
+    username: <YOUR EMAIL ADDRESS>
+    api-token: <YOUR API TOKEN>
+```
+
+Subsequent runs of `$ rancher -jira` will populate the ticket list with your assigned tickets in
+active sprints. Selecting one of these will fill out the `{ticket}` and `{description}` fields of
+the branch.
+
 ### Installation
 
 Install this with `$ go install github.com/mr55p-dev/rancher@latest`.
