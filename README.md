@@ -19,7 +19,7 @@ jira:
     api-token: <YOUR API TOKEN>
 ```
 
-Subsequent runs of `$ rancher -jira` will populate the ticket list with your assigned tickets in
+Running `$ rancher -jira` will populate the ticket list with your assigned tickets in
 active sprints. Selecting one of these will fill out the `{ticket}` and `{description}` fields of
 the branch.
 
