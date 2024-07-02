@@ -96,15 +96,16 @@ func main() {
 		os.Exit(1)
 	}
 
-	confirmForm := huh.NewConfirm().
+	confirm := true
+	_ = huh.NewConfirm().
 		Affirmative("Create").
 		Negative("Cancel").
 		Title("Create branch?").
-		Description(config.String())
+		Description(config.String()).
+		Value(&confirm).
+		Run()
 
-	_ = confirmForm.Run()
-
-	if confirmForm.GetValue().(bool) == true {
+	if confirm == true {
 		Git("branch", config.String())
 		Git("switch", config.String())
 	}
