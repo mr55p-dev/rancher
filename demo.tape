@@ -20,5 +20,4 @@ Enter Sleep 2s
 Type "A fun description" Sleep 1s
 Enter Sleep 2s
 
-Left Sleep 1s
 Enter Sleep 2s

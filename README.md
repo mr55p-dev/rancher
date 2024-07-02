@@ -1,7 +1,8 @@
 # rancher
 
-`rancher` is a utility for creating Git branches. Very simple, run `rancher`, fill out the fields,
-and get a git branch at the end of it. Branches are created with the format `{feature type?}/{ticket?}/{description}`.
+`rancher` is a utility for creating Git branches, with support for autofilling from a jira ticket.
+Very simple, run `rancher`, fill out the fields, and get a git branch at the end of it. Branches are
+created with the format `{feature type?}/{ticket?}/{description}`.
 
 > [!NOTE]
 > It's possible to customise the separator, but not yet the layout of the components in the branch.
