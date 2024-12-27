@@ -27,6 +27,7 @@ type JiraFields struct {
 type Jira struct {
 	Username string `config:"username,optional"`
 	Token    string `config:"api-token,optional"`
+	Query    string `config:"query,optional"`
 }
 
 func (jira *Jira) BasicAuth() string {
@@ -43,7 +44,7 @@ func (jira *Jira) QueryTickets() ([]SelectOption, error) {
 	target.Host = "sainsburys-tech.atlassian.net"
 	target.Path = "/rest/api/2/search"
 	q := target.Query()
-	q.Add("jql", "assignee=currentUser() and sprint IN openSprints()")
+	q.Add("jql", jira.Query)
 	target.RawQuery = q.Encode()
 	req, err := http.NewRequest(http.MethodGet, target.String(), nil)
 	if err != nil {
