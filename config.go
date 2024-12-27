@@ -57,6 +57,9 @@ func NewConfig() *Config {
 			Type:                 "feat",
 			DescriptionSeparator: "-",
 		},
+		Jira: Jira{
+			Query: "assignee=currentUser() and sprint IN openSprints()",
+		},
 	}
 }
 
