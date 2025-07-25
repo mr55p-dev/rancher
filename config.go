@@ -47,23 +47,19 @@ func sanitize(s, separator string) string {
 
 func (c *Config) String() string {
 	segments := make([]string, 0)
-	if c.Branch.Type != "" {
-		segments = append(segments, sanitize(
-			c.Branch.Type,
-			c.Branch.DescriptionSeparator,
-		))
+	branchType := sanitize(c.Branch.Type, c.Branch.DescriptionSeparator)
+	if branchType != "" {
+		segments = append(segments, branchType)
 	}
-	if c.Ticket.ID != "" {
-		segments = append(segments, sanitize(
-			c.Ticket.ID,
-			c.Branch.DescriptionSeparator,
-		))
+
+	ticketId := sanitize(c.Ticket.ID, "-")
+	if ticketId != "" {
+		segments = append(segments, ticketId)
 	}
-	if c.Branch.Description != "" {
-		segments = append(segments, sanitize(
-			c.Branch.Description,
-			c.Branch.DescriptionSeparator,
-		))
+
+	branchDesc := sanitize(c.Branch.Description, c.Branch.DescriptionSeparator)
+	if branchDesc != "" {
+		segments = append(segments, branchDesc)
 	}
 	return strings.Join(segments, c.Branch.Separator)
 }
