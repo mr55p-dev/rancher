@@ -28,6 +28,7 @@ type Jira struct {
 	Username string `config:"username,optional"`
 	Token    string `config:"api-token,optional"`
 	Query    string `config:"query,optional"`
+	Host     string `config:"host,optional"`
 }
 
 func (jira *Jira) BasicAuth() string {
@@ -41,7 +42,7 @@ func (jira *Jira) BasicAuth() string {
 func (jira *Jira) QueryTickets() ([]SelectOption, error) {
 	target := new(url.URL)
 	target.Scheme = "https"
-	target.Host = "sainsburys-tech.atlassian.net"
+	target.Host = jira.Host
 	target.Path = "/rest/api/2/search"
 	q := target.Query()
 	q.Add("jql", jira.Query)

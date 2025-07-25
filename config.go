@@ -7,6 +7,7 @@ type Ticket struct {
 }
 
 type Branch struct {
+	// The separating string
 	Separator            string `config:"separator,optional"`
 	Type                 string `config:"type,optional"`
 	Description          string
@@ -19,13 +20,17 @@ type SelectOption struct {
 }
 
 type Config struct {
-	Ticket        Ticket
-	BranchOptions []SelectOption
-	Branch        Branch `config:"request,optional"`
-	Jira          Jira   `config:"jira,optional"`
+	// Ticket info
+	Ticket Ticket
+	// what choices are for the branch type field
+	BranchTypeOptions []SelectOption
+	// Branch name generation settings
+	Branch Branch `config:"branch,optional"`
+	// Jira API config
+	Jira Jira `config:"jira,optional"`
 }
 
-var DefaultBranchOptions = []SelectOption{
+var DefaultBranchTypeOpts = []SelectOption{
 	{"Feature", "feat"},
 	{"Fix", "fix"},
 	{"Documentation", "docs"},
@@ -35,17 +40,30 @@ var DefaultBranchOptions = []SelectOption{
 	{"None", ""},
 }
 
+func sanitize(s, separator string) string {
+	replacer := strings.NewReplacer((" "), separator)
+	return replacer.Replace(strings.TrimSpace(s))
+}
+
 func (c *Config) String() string {
 	segments := make([]string, 0)
 	if c.Branch.Type != "" {
-		segments = append(segments, c.Branch.Type)
+		segments = append(segments, sanitize(
+			c.Branch.Type,
+			c.Branch.DescriptionSeparator,
+		))
 	}
 	if c.Ticket.ID != "" {
-		segments = append(segments, c.Ticket.ID)
+		segments = append(segments, sanitize(
+			c.Ticket.ID,
+			c.Branch.DescriptionSeparator,
+		))
 	}
 	if c.Branch.Description != "" {
-		replacer := strings.NewReplacer((" "), c.Branch.DescriptionSeparator)
-		segments = append(segments, replacer.Replace(c.Branch.Description))
+		segments = append(segments, sanitize(
+			c.Branch.Description,
+			c.Branch.DescriptionSeparator,
+		))
 	}
 	return strings.Join(segments, c.Branch.Separator)
 }
@@ -64,5 +82,5 @@ func NewConfig() *Config {
 }
 
 func (c *Config) ApplyBranchDefaults() {
-	c.BranchOptions = append(c.BranchOptions, DefaultBranchOptions...)
+	c.BranchTypeOptions = append(c.BranchTypeOptions, DefaultBranchTypeOpts...)
 }

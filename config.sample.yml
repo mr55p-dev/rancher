@@ -1,0 +1,10 @@
+# Install this sample config to ~/.config/rancher/rancher.yml
+branch:
+  type: feat
+  separator: "/"
+  description-separator: "-"
+# jira:
+#   username: <username>
+#   query: assignee=currentUser() and sprint IN openSprints()
+#   token: <token>
+#   host: <host>.atlassian.net

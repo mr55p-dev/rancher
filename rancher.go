@@ -23,7 +23,6 @@ func Git(args ...string) {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
-	return
 }
 
 func getConfigDir() string {
@@ -80,7 +79,7 @@ func main() {
 			huh.NewSelect[string]().
 				Key("branchType").
 				Title("Branch Type").
-				Options(ToHuh(config.BranchOptions)...).
+				Options(ToHuh(config.BranchTypeOptions)...).
 				Value(&config.Branch.Type),
 			getTicketInput(config),
 			huh.NewInput().
