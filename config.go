@@ -23,7 +23,7 @@ type Config struct {
 	// Ticket info
 	Ticket Ticket
 	// what choices are for the branch type field
-	BranchTypeOptions []SelectOption
+	BranchTypeOptions []SelectOption `config:"types,optional"`
 	// Branch name generation settings
 	Branch Branch `config:"branch,optional"`
 	// Jira API config
