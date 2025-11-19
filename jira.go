@@ -15,9 +15,9 @@ type JiraResponse struct {
 }
 
 type JiraIssue struct {
-	Id         string `json:"id"`
-	Key        string `json:"key"`
-	JiraFields `json:"fields"`
+	Id     string     `json:"id"`
+	Key    string     `json:"key"`
+	Fields JiraFields `json:"fields"`
 }
 
 type JiraFields struct {
@@ -26,7 +26,7 @@ type JiraFields struct {
 
 type Jira struct {
 	Username string `config:"username,optional"`
-	Token    string `config:"api-token,optional"`
+	Token    string `config:"token,optional"`
 	Query    string `config:"query,optional"`
 	Host     string `config:"host,optional"`
 }
@@ -39,17 +39,29 @@ func (jira *Jira) BasicAuth() string {
 	return out.String()
 }
 
-func (jira *Jira) QueryTickets() ([]SelectOption, error) {
+func (jira *Jira) QueryTickets(debug bool) ([]SelectOption, error) {
 	target := new(url.URL)
 	target.Scheme = "https"
 	target.Host = jira.Host
-	target.Path = "/rest/api/2/search"
+	target.Path = "/rest/api/3/search/jql"
 	q := target.Query()
 	q.Add("jql", jira.Query)
+	q.Add("fields", "key,summary")
 	target.RawQuery = q.Encode()
+
+	if debug {
+		fmt.Printf("Jira Query: %s\n", jira.Query)
+		fmt.Printf("Jira URL: %s\n", target.String())
+	}
+
 	req, err := http.NewRequest(http.MethodGet, target.String(), nil)
 	if err != nil {
 		return nil, err
+	}
+	if debug {
+		fmt.Printf("Username: %s\n", jira.Username)
+		fmt.Printf("Token: %s\n", jira.Token)
+		fmt.Printf("Authorization token: %s\n", jira.BasicAuth())
 	}
 	req.Header.Add("Authorization", fmt.Sprintf("Basic %s", jira.BasicAuth()))
 
@@ -59,9 +71,17 @@ func (jira *Jira) QueryTickets() ([]SelectOption, error) {
 	}
 	defer res.Body.Close()
 
+	if res.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("jira API returned status %d: %s", res.StatusCode, res.Status)
+	}
+
 	contents, err := io.ReadAll(res.Body)
 	if err != nil {
 		return nil, err
+	}
+
+	if debug {
+		fmt.Printf("Jira API Response:\n%s\n", string(contents))
 	}
 	parsedResponse := new(JiraResponse)
 	err = json.Unmarshal(contents, &parsedResponse)
@@ -70,9 +90,13 @@ func (jira *Jira) QueryTickets() ([]SelectOption, error) {
 		return nil, err
 	}
 
+	if len(parsedResponse.Issues) == 0 {
+		return nil, fmt.Errorf("no tickets returned from Jira (query may be too restrictive or no tickets match)")
+	}
+
 	arr := make([]SelectOption, len(parsedResponse.Issues))
 	for i, issue := range parsedResponse.Issues {
-		arr[i] = SelectOption{fmt.Sprintf("%s: %s", issue.Key, issue.Summary), issue.Key}
+		arr[i] = SelectOption{fmt.Sprintf("%s: %s", issue.Key, issue.Fields.Summary), issue.Key}
 	}
 	return arr, nil
 }

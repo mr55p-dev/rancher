@@ -13,6 +13,7 @@ import (
 )
 
 var useJira = flag.Bool("jira", false, "Use Jira for ticket numbers")
+var debug = flag.Bool("debug", false, "Enable debug logging")
 
 func Git(args ...string) {
 	cmd := exec.Command("git", args...)
@@ -36,7 +37,6 @@ func getConfig() (*Config, error) {
 	yamlLoader, _ := gonk.NewYamlLoader(configPath)
 	err := gonk.LoadConfig(config, yamlLoader)
 	if err != nil {
-		log.Printf("hit an error: %+v, error: %v", *config, err)
 		return nil, err
 	}
 	config.ApplyBranchDefaults()
@@ -53,9 +53,9 @@ func getTicketInput(config *Config) huh.Field {
 		return ticketInput
 	}
 
-	tickets, err := config.Jira.QueryTickets()
+	tickets, err := config.Jira.QueryTickets(*debug)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "error querying Jira: %v\n", err)
 		return ticketInput
 	}
 

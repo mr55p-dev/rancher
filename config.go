@@ -72,7 +72,7 @@ func NewConfig() *Config {
 			DescriptionSeparator: "-",
 		},
 		Jira: Jira{
-			Query: "assignee=currentUser() and sprint IN openSprints()",
+			Query: "assignee = currentUser()",
 		},
 	}
 }
