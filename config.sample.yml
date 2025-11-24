@@ -3,6 +3,16 @@ branch:
   type: feat
   separator: "/"
   description-separator: "-"
+types:
+  Feature: feature
+  Feat: feat
+  Fix: fix
+  Chore: chore
+  Docs: docs
+  Refactor: refactor
+  Performance: perf
+  CI: ci
+  None:
 # jira:
 #   username: <username>
 #   query: assignee=currentUser() and sprint IN openSprints()

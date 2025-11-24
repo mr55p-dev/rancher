@@ -4,7 +4,7 @@ go 1.22.0
 
 require (
 	github.com/charmbracelet/huh v0.4.2
-	github.com/mr55p-dev/gonk v0.2.0
+	github.com/mr55p-dev/gonk v0.7.0
 )
 
 require (

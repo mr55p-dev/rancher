@@ -1,6 +1,12 @@
 package main
 
-import "strings"
+import (
+	"strings"
+	_ "embed"
+)
+
+//go:embed config.sample.yml
+var defaultConfig string
 
 type Ticket struct {
 	ID string
@@ -10,34 +16,19 @@ type Branch struct {
 	// The separating string
 	Separator            string `config:"separator,optional"`
 	Type                 string `config:"type,optional"`
-	Description          string
+	Description          string `config:"-"`
 	DescriptionSeparator string `config:"description-separator,optional"`
-}
-
-type SelectOption struct {
-	Key   string `config:"key"`
-	Value string `config:"value"`
 }
 
 type Config struct {
 	// Ticket info
-	Ticket Ticket
+	Ticket Ticket `config:"-"`
 	// what choices are for the branch type field
-	BranchTypeOptions []SelectOption `config:"types,optional"`
+	BranchTypeOptions map[string]string `config:"types,optional"`
 	// Branch name generation settings
 	Branch Branch `config:"branch,optional"`
 	// Jira API config
 	Jira Jira `config:"jira,optional"`
-}
-
-var DefaultBranchTypeOpts = []SelectOption{
-	{"Feature", "feat"},
-	{"Fix", "fix"},
-	{"Documentation", "docs"},
-	{"Refactor", "refactor"},
-	{"Performance", "perf"},
-	{"CI", "ci"},
-	{"None", ""},
 }
 
 func sanitize(s, separator string) string {
@@ -77,6 +68,3 @@ func NewConfig() *Config {
 	}
 }
 
-func (c *Config) ApplyBranchDefaults() {
-	c.BranchTypeOptions = append(c.BranchTypeOptions, DefaultBranchTypeOpts...)
-}

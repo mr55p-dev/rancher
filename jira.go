@@ -8,6 +8,8 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+
+	"github.com/charmbracelet/huh"
 )
 
 type JiraResponse struct {
@@ -39,7 +41,7 @@ func (jira *Jira) BasicAuth() string {
 	return out.String()
 }
 
-func (jira *Jira) QueryTickets(debug bool) ([]SelectOption, error) {
+func (jira *Jira) QueryTickets(debug bool) ([]huh.Option[string], error) {
 	target := new(url.URL)
 	target.Scheme = "https"
 	target.Host = jira.Host
@@ -94,9 +96,12 @@ func (jira *Jira) QueryTickets(debug bool) ([]SelectOption, error) {
 		return nil, fmt.Errorf("no tickets returned from Jira (query may be too restrictive or no tickets match)")
 	}
 
-	arr := make([]SelectOption, len(parsedResponse.Issues))
+	arr := make([]huh.Option[string], len(parsedResponse.Issues))
 	for i, issue := range parsedResponse.Issues {
-		arr[i] = SelectOption{fmt.Sprintf("%s: %s", issue.Key, issue.Fields.Summary), issue.Key}
+		arr[i] = huh.Option[string]{
+			Key:   fmt.Sprintf("%s: %s", issue.Key, issue.Fields.Summary),
+			Value: issue.Key,
+		}
 	}
 	return arr, nil
 }

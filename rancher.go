@@ -14,6 +14,7 @@ import (
 
 var useJira = flag.Bool("jira", false, "Use Jira for ticket numbers")
 var debug = flag.Bool("debug", false, "Enable debug logging")
+var doInit = flag.Bool("init", false, "Creates default config file at $HOME/.config/rancher/rancher.yml")
 
 func Git(args ...string) {
 	cmd := exec.Command("git", args...)
@@ -26,20 +27,26 @@ func Git(args ...string) {
 	}
 }
 
-func getConfigDir() string {
-	baseConfigDir, _ := os.UserHomeDir()
-	return filepath.Join(baseConfigDir, ".config", "rancher", "rancher.yml")
+func getConfigDir() (string, error) {
+	baseConfigDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("Failed to get user home dir: %w", err)
+	}
+	return filepath.Join(baseConfigDir, ".config", "rancher"), nil
 }
 
 func getConfig() (*Config, error) {
 	config := NewConfig()
-	configPath := getConfigDir()
-	yamlLoader, _ := gonk.NewYamlLoader(configPath)
-	err := gonk.LoadConfig(config, yamlLoader)
+	configDir, err := getConfigDir()
 	if err != nil {
+		log.Fatalln("Could not read user home directory", err.Error())
+	}
+	configPath := filepath.Join(configDir, "rancher.yml")
+	yamlLoader, _ := gonk.NewYamlLoader(configPath)
+
+	if err = gonk.LoadConfig(config, yamlLoader); err != nil {
 		return nil, err
 	}
-	config.ApplyBranchDefaults()
 	return config, nil
 }
 
@@ -63,23 +70,54 @@ func getTicketInput(config *Config) huh.Field {
 		Key("ticketNumber").
 		Title("Ticket").
 		Value(&config.Ticket.ID).
-		Options(ToHuh(tickets)...)
+		Options(tickets...)
 }
 
 func main() {
 	flag.Parse()
+
+	if *doInit {
+		log.Println("Creating default config file")
+		dir, err := getConfigDir()
+		if err != nil {
+			log.Fatalln("Could not get config dir name", err.Error())
+		}
+		if err := os.MkdirAll(dir, os.ModeDir); err != nil {
+			log.Fatalln("Could not create config directory", err.Error())
+		}
+		tgt := filepath.Join(dir, "rancher.yml")
+		if _, err := os.Stat(tgt); err == nil {
+			log.Fatalln("Config file already exists. Please delete it to continue.")
+		}
+		fd, err := os.Create(tgt)
+		if err != nil {
+			log.Fatalln("Failed to create config file", err.Error())
+		}
+		if _, err := fd.WriteString(defaultConfig); err != nil {
+			log.Fatalln("Failed to write to config file", err.Error())
+		}
+		log.Println("Succesfully created default config file")
+		return
+	}
 
 	config, err := getConfig()
 	if err != nil {
 		log.Panicf("Error loading configuration: %v", err)
 	}
 
+	huhBranches := make([]huh.Option[string], 0, len(config.BranchTypeOptions))
+	for key, val := range config.BranchTypeOptions {
+		huhBranches = append(huhBranches, huh.Option[string]{
+			Key:   key,
+			Value: val,
+		})
+	}
 	form := huh.NewForm(
 		huh.NewGroup(
 			huh.NewSelect[string]().
 				Key("branchType").
 				Title("Branch Type").
-				Options(ToHuh(config.BranchTypeOptions)...).
+				Options(huhBranches...).
 				Value(&config.Branch.Type),
 			getTicketInput(config),
 			huh.NewInput().
