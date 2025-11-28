@@ -42,9 +42,10 @@ func getConfig() (*Config, error) {
 		log.Fatalln("Could not read user home directory", err.Error())
 	}
 	configPath := filepath.Join(configDir, "rancher.yml")
-	yamlLoader, _ := gonk.NewYamlLoader(configPath)
+	baseYAMLLoader, _ := gonk.NewYamlLoader(configPath)
+	localYAMLLoader, _ := gonk.NewYamlLoader(".rancher.yml")
 
-	if err = gonk.LoadConfig(config, yamlLoader); err != nil {
+	if err = gonk.LoadConfig(config, baseYAMLLoader, localYAMLLoader); err != nil {
 		return nil, err
 	}
 	return config, nil

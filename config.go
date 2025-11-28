@@ -1,8 +1,10 @@
 package main
 
 import (
-	"strings"
 	_ "embed"
+	"fmt"
+	"regexp"
+	"strings"
 )
 
 //go:embed config.sample.yml
@@ -18,6 +20,18 @@ type Branch struct {
 	Type                 string `config:"type,optional"`
 	Description          string `config:"-"`
 	DescriptionSeparator string `config:"description-separator,optional"`
+	FormatString         string `config:"format-string"`
+}
+
+type FormatOptions struct {
+	Type      string
+	TypeShort string
+
+	TicketId      string
+	TicketNumber  string
+	TicketProject string
+
+	Description string
 }
 
 type Config struct {
@@ -36,8 +50,24 @@ func sanitize(s, separator string) string {
 	return replacer.Replace(strings.TrimSpace(s))
 }
 
+func (c *Config) LoadOptions() FormatOptions {
+	segments := strings.Split(c.Ticket.ID, "-")
+	if len(segments) != 2 {
+		panic("Invalid ticket format")
+	}
+
+	return FormatOptions{
+		Type:          c.Branch.Type,
+		TypeShort:     c.Branch.Type,
+		TicketId:      c.Ticket.ID,
+		TicketNumber:  segments[0],
+		TicketProject: segments[1],
+		Description:   c.Branch.Description,
+	}
+}
+
 func (c *Config) String() string {
-	segments := make([]string, 0)
+	segments := make([]string, 0, 4)
 	branchType := sanitize(c.Branch.Type, c.Branch.DescriptionSeparator)
 	if branchType != "" {
 		segments = append(segments, branchType)
@@ -52,6 +82,13 @@ func (c *Config) String() string {
 	if branchDesc != "" {
 		segments = append(segments, branchDesc)
 	}
+
+	if c.Jira.SuffixTicketID {
+		expr := regexp.MustCompile("[0-9]+")
+		idInt := expr.FindString(c.Ticket.ID)
+		segments = append(segments, fmt.Sprintf("#%s", idInt))
+	}
+
 	return strings.Join(segments, c.Branch.Separator)
 }
 
@@ -67,4 +104,3 @@ func NewConfig() *Config {
 		},
 	}
 }
-

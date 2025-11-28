@@ -27,10 +27,11 @@ type JiraFields struct {
 }
 
 type Jira struct {
-	Username string `config:"username,optional"`
-	Token    string `config:"token,optional"`
-	Query    string `config:"query,optional"`
-	Host     string `config:"host,optional"`
+	Username       string `config:"username,optional"`
+	Token          string `config:"token,optional"`
+	Query          string `config:"query,optional"`
+	Host           string `config:"host,optional"`
+	SuffixTicketID bool   `config:"suffix-ticket-id,optional"`
 }
 
 func (jira *Jira) BasicAuth() string {

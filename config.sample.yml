@@ -18,3 +18,4 @@ types:
 #   query: assignee=currentUser() and sprint IN openSprints()
 #   token: <token>
 #   host: <host>.atlassian.net
+#   suffix-ticket-id: false
