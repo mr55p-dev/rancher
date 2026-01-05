@@ -1,8 +1,21 @@
 # Install this sample config to ~/.config/rancher/rancher.yml
 branch:
   type: feat
-  separator: "/"
-  description-separator: "-"
+  # Format string for branch names using Go text/template syntax
+  # Available fields:
+  #   .Type          - Branch type (e.g., "feat", "fix", "chore")
+  #   .TypeShort     - Same as Type (kept for compatibility)
+  #   .TicketId      - Full ticket ID (e.g., "PROJ-123")
+  #   .TicketProject - Just the project key (e.g., "PROJ")
+  #   .TicketNumber  - Just the ticket number (e.g., "123")
+  #   .Description   - Branch description with spaces replaced by dashes
+  #
+  # Examples:
+  #   "{{.Type}}/{{.TicketId}}-{{.Description}}"           -> feat/PROJ-123-add-feature
+  #   "{{.Type}}/{{.TicketId}}/{{.Description}}"           -> feat/PROJ-123/add-feature
+  #   "{{.TicketId}}-{{.Description}}"                     -> PROJ-123-add-feature
+  #   "{{.Type}}-{{.TicketNumber}}-{{.TicketProject}}-{{.Description}}" -> feat-PROJ-123-add-feature
+  format-string: "{{.Type}}/{{.TicketId}}-{{.Description}}"
 types:
   Feature: feature
   Feat: feat
@@ -18,4 +31,3 @@ types:
 #   query: assignee=currentUser() and sprint IN openSprints()
 #   token: <token>
 #   host: <host>.atlassian.net
-#   suffix-ticket-id: false

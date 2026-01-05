@@ -1,10 +1,10 @@
 package main
 
 import (
+	"bytes"
 	_ "embed"
-	"fmt"
-	"regexp"
 	"strings"
+	"text/template"
 )
 
 //go:embed config.sample.yml
@@ -15,12 +15,9 @@ type Ticket struct {
 }
 
 type Branch struct {
-	// The separating string
-	Separator            string `config:"separator,optional"`
-	Type                 string `config:"type,optional"`
-	Description          string `config:"-"`
-	DescriptionSeparator string `config:"description-separator,optional"`
-	FormatString         string `config:"format-string"`
+	Type         string `config:"type,optional"`
+	Description  string `config:"-"`
+	FormatString string `config:"format-string"`
 }
 
 type FormatOptions struct {
@@ -60,44 +57,32 @@ func (c *Config) LoadOptions() FormatOptions {
 		Type:          c.Branch.Type,
 		TypeShort:     c.Branch.Type,
 		TicketId:      c.Ticket.ID,
-		TicketNumber:  segments[0],
-		TicketProject: segments[1],
-		Description:   c.Branch.Description,
+		TicketProject: segments[0],
+		TicketNumber:  segments[1],
+		Description:   sanitize(c.Branch.Description, "-"),
 	}
 }
 
 func (c *Config) String() string {
-	segments := make([]string, 0, 4)
-	branchType := sanitize(c.Branch.Type, c.Branch.DescriptionSeparator)
-	if branchType != "" {
-		segments = append(segments, branchType)
+	tmpl, err := template.New("branch").Parse(c.Branch.FormatString)
+	if err != nil {
+		panic(err)
 	}
 
-	ticketId := sanitize(c.Ticket.ID, "-")
-	if ticketId != "" {
-		segments = append(segments, ticketId)
+	options := c.LoadOptions()
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, options); err != nil {
+		panic(err)
 	}
 
-	branchDesc := sanitize(c.Branch.Description, c.Branch.DescriptionSeparator)
-	if branchDesc != "" {
-		segments = append(segments, branchDesc)
-	}
-
-	if c.Jira.SuffixTicketID {
-		expr := regexp.MustCompile("[0-9]+")
-		idInt := expr.FindString(c.Ticket.ID)
-		segments = append(segments, fmt.Sprintf("#%s", idInt))
-	}
-
-	return strings.Join(segments, c.Branch.Separator)
+	return buf.String()
 }
 
 func NewConfig() *Config {
 	return &Config{
 		Branch: Branch{
-			Separator:            "/",
-			Type:                 "feat",
-			DescriptionSeparator: "-",
+			Type:         "feat",
+			FormatString: "{{.Type}}/{{.TicketId}}-{{.Description}}",
 		},
 		Jira: Jira{
 			Query: "assignee = currentUser()",
