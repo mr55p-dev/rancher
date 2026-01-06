@@ -17,15 +17,15 @@ branch:
   #   "{{.Type}}-{{.TicketNumber}}-{{.TicketProject}}-{{.Description}}" -> feat-PROJ-123-add-feature
   format-string: "{{.Type}}/{{.TicketId}}-{{.Description}}"
 types:
-  Feature: feature
-  Feat: feat
-  Fix: fix
-  Chore: chore
-  Docs: docs
-  Refactor: refactor
-  Performance: perf
-  CI: ci
-  None:
+  - Feature: feature
+  - Feat: feat
+  - Fix: fix
+  - Chore: chore
+  - Docs: docs
+  - Refactor: refactor
+  - Performance: perf
+  - CI: ci
+  - None:
 # jira:
 #   username: <username>
 #   query: assignee=currentUser() and sprint IN openSprints()

@@ -35,7 +35,7 @@ type Config struct {
 	// Ticket info
 	Ticket Ticket `config:"-"`
 	// what choices are for the branch type field
-	BranchTypeOptions map[string]string `config:"types,optional"`
+	BranchTypeOptions []map[string]string `config:"types,optional"`
 	// Branch name generation settings
 	Branch Branch `config:"branch,optional"`
 	// Jira API config
@@ -50,7 +50,7 @@ func sanitize(s, separator string) string {
 func (c *Config) LoadOptions() FormatOptions {
 	segments := strings.Split(c.Ticket.ID, "-")
 	if len(segments) != 2 {
-		panic("Invalid ticket format")
+		segments = []string{"", ""}
 	}
 
 	return FormatOptions{

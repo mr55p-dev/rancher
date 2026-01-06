@@ -107,11 +107,13 @@ func main() {
 	}
 
 	huhBranches := make([]huh.Option[string], 0, len(config.BranchTypeOptions))
-	for key, val := range config.BranchTypeOptions {
-		huhBranches = append(huhBranches, huh.Option[string]{
-			Key:   key,
-			Value: val,
-		})
+	for _, entry := range config.BranchTypeOptions {
+		for key, val := range entry {
+			huhBranches = append(huhBranches, huh.Option[string]{
+				Key:   key,
+				Value: val,
+			})
+		}
 	}
 	form := huh.NewForm(
 		huh.NewGroup(
